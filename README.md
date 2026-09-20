@@ -3,9 +3,6 @@
 Read, verify, erase and write SPI flash chips from an Android phone, using a real
 CH341A or similar USB programmer plugged in over OTG.
 
-<p align="center">
-  <img src="flashrom.jpg" alt="The app running on a phone with a CH341A programmer and SOIC-8 clip attached over OTG" width="360">
-</p>
 
 The usual way to recover a laptop with a dead BIOS is to sit a second working
 laptop next to it, plug the programmer into that, and run flashrom. This does the
@@ -127,6 +124,10 @@ out to real storage before loading anything.
 Flashrom needs a chip definition when several match, which is common on Winbond
 parts. The picker handles this, but it asks again on every operation because the
 buttons pass fixed arguments with no `-c`.
+
+<p align="center">
+  <img src="flashrom.jpg" alt="The app running on a phone with a CH341A programmer and SOIC-8 clip attached over OTG" width="360">
+</p>
 
 ## Licence and credits
 
