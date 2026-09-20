@@ -114,7 +114,8 @@ offers to launch this app every time any USB serial adapter is plugged in.
 After a read or a write, a second probe will often fail until the app is closed
 and the programmer reattached. The app holds one `UsbDeviceConnection` open for its
 whole lifetime and each flashrom process gets a duplicate of that file descriptor,
-so the programmer is never re-enumerated between runs.
+so the programmer is never re-enumerated between runs,Simple fix after doing a read or write
+if you need to r/w again simply unplug the device and replug it in.
 
 Read and load share one file. `READ CHIP` writes to `bios.bin` in the app's private
 storage and `LOAD ROM` writes the file you pick to that same path, so importing an
