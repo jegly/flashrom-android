@@ -267,7 +267,6 @@ public class AssetHelper {
         File usrBin = new File(filesDir, "usr/bin");
         File usrSbin = new File(filesDir, "usr/sbin");
         File usrLib = new File(filesDir, "usr/lib");
-        File pythonSitePackages = new File(usrLib, "python3.14/site-packages");
 
         if (!usrBin.exists())
             usrBin.mkdirs();
@@ -275,66 +274,47 @@ public class AssetHelper {
             usrSbin.mkdirs();
         if (!usrLib.exists())
             usrLib.mkdirs();
-        if (!pythonSitePackages.exists())
-            pythonSitePackages.mkdirs();
 
-        // Ejecutables/librerías principales se resuelven desde jniLibs con nombres
-        // clásicos vía symlink.
+        // Executables and libraries live in jniLibs under Android-safe names
+        // (lib*.so); symlink them back to their classic names here.
+        //
+        // This build ships a deliberately smaller native set than upstream:
+        // libpci/lspci/setpci/pcilmr, libftdipp1, libcrypto and libz are gone.
+        // flashrom is built without the PCI programmers (which need root or raw
+        // PCI access and cannot work on Android), RPMC is disabled so OpenSSL is
+        // not needed, and libftdipp1 is the C++ wrapper that nothing here calls.
+        // Linking names we no longer ship would make this method return false
+        // and fail startup.
         boolean ok = true;
         ok &= linkTool(new File(usrSbin, "flashrom"), new File(nativeLibDir, "libflashrom_bin.so"));
-        ok &= linkTool(new File(usrBin, "lspci"), new File(nativeLibDir, "liblspci.so"));
-        ok &= linkTool(new File(usrSbin, "setpci"), new File(nativeLibDir, "libsetpci.so"));
-        ok &= linkTool(new File(usrSbin, "pcilmr"), new File(nativeLibDir, "libpcilmr.so"));
-        // update-pciids is a bash script in assets, no symlink needed from jniLibs
         ok &= linkTool(new File(usrBin, "ftdi_eeprom"), new File(nativeLibDir, "libftdi_eeprom.so"));
         // libftdi1-config is a shell script extracted from assets (not ELF), no jniLibs link needed
 
-        // Sonames esperados por binarios/nativas: apuntan al nombre Android copiable
-        // (.so).
+        // Sonames our binaries actually ask for at load time.
         ok &= linkRuntimeSoname(usrLib, nativeLibDir, "libflashrom.so");
         ok &= linkRuntimeSoname(usrLib, nativeLibDir, "libflashrom.so.1");
         ok &= linkRuntimeSoname(usrLib, nativeLibDir, "libflashrom.so.1.0.0");
 
-        ok &= linkRuntimeSoname(usrLib, nativeLibDir, "libpci.so");
-        ok &= linkRuntimeSoname(usrLib, nativeLibDir, "libpci.so.3");
-        ok &= linkRuntimeSoname(usrLib, nativeLibDir, "libpci.so.3.15.0");
-
+        // Our libftdi1 has SONAME "libftdi1.so" (the NDK sets
+        // CMAKE_PLATFORM_NO_VERSIONED_SONAME, since Android has no versioned
+        // sonames). The .so.2 / .so.2.6.0 names are kept so anything built
+        // against the old versioned layout still resolves.
         ok &= linkRuntimeSoname(usrLib, nativeLibDir, "libftdi1.so");
         ok &= linkRuntimeSoname(usrLib, nativeLibDir, "libftdi1.so.2");
         ok &= linkRuntimeSoname(usrLib, nativeLibDir, "libftdi1.so.2.6.0");
 
-        ok &= linkRuntimeSoname(usrLib, nativeLibDir, "libftdipp1.so");
-        ok &= linkRuntimeSoname(usrLib, nativeLibDir, "libftdipp1.so.3");
-        ok &= linkRuntimeSoname(usrLib, nativeLibDir, "libftdipp1.so.2.6.0");
-
         ok &= linkRuntimeSoname(usrLib, nativeLibDir, "libusb-1.0.so");
         ok &= linkRuntimeSoname(usrLib, nativeLibDir, "libjaylink.so");
-        ok &= linkRuntimeSoname(usrLib, nativeLibDir, "libcrypto.so.3");
-        ok &= linkRuntimeSoname(usrLib, nativeLibDir, "libz.so.1");
         ok &= linkRuntimeSoname(usrLib, nativeLibDir, "libconfuse.so");
         ok &= linkRuntimeSoname(usrLib, nativeLibDir, "libc++_shared.so");
-        // Extensión Python: nombre Android en jniLibs y nombre original vía symlink en
-        // site-packages.
-        if (!linkTool(new File(pythonSitePackages, "_pyftdi1.so"), new File(nativeLibDir, "libpyftdi1.so"))) {
-            Log.e(TAG, "Fallo al enlazar extensión Python _pyftdi1.so");
-            ok = false;
-        }
 
-        // Validación mínima de dependencias críticas para herramientas principales.
-        if (!ensurePresent(new File(usrLib, "libcrypto.so.3"))) {
-            Log.e(TAG, "Falta libcrypto.so.3 en runtime");
-            ok = false;
-        }
+        // Minimum validation of the runtime dependencies the tools need.
         if (!ensurePresent(new File(usrLib, "libconfuse.so"))) {
-            Log.e(TAG, "Falta libconfuse.so en runtime");
-            ok = false;
-        }
-        if (!ensurePresent(new File(usrLib, "libz.so.1"))) {
-            Log.e(TAG, "Falta libz.so.1 en runtime");
+            Log.e(TAG, "libconfuse.so missing from runtime");
             ok = false;
         }
         if (!ensurePresent(new File(usrLib, "libc++_shared.so"))) {
-            Log.e(TAG, "Falta libc++_shared.so en runtime");
+            Log.e(TAG, "libc++_shared.so missing from runtime");
             ok = false;
         }
 

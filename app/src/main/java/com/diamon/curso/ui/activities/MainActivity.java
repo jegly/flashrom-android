@@ -1,8 +1,6 @@
 package com.diamon.curso.ui.activities;
 
 import com.diamon.curso.R;
-import com.diamon.curso.ads.MostrarPublicidad;
-import com.diamon.curso.billing.BillingManager;
 import com.diamon.curso.core.PtyBridge;
 import com.diamon.curso.core.UsbController;
 import com.diamon.curso.core.FlashromExecutor;
@@ -70,9 +68,6 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import com.microsoft.appcenter.AppCenter;
-import com.microsoft.appcenter.analytics.Analytics;
-import com.microsoft.appcenter.crashes.Crashes;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -165,16 +160,12 @@ public class MainActivity extends AppCompatActivity {
     private String selectedProgrammer = "ch341a_spi";
     private volatile boolean hasReadData = false; // true cuando hay datos LEÍDOS del chip
     private volatile String lastReadFile = "bios.bin"; // archivo del último read exitoso
-    private MostrarPublicidad mostrarPublicidad;
-    private BillingManager billingManager;
 
     // API para Visor Hexadecimal (Anuncio al regresar)
     private final ActivityResultLauncher<Intent> hexViewerLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
             result -> {
-                if (mostrarPublicidad != null) {
-                    mostrarPublicidad.mostrarInterstitialConCooldown();
-                }
+                // No ads: nothing to do when returning from the viewer.
             });
 
     // Chips predefinidos que el programador dummy reconoce.
@@ -258,11 +249,7 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
-        AppCenter.start(
-                getApplication(),
-                "cf7ac082-49cd-4cef-bd2d-3f1a3377efa9",
-                Analytics.class,
-                Crashes.class);
+        applyWindowInsets();
 
         layoutLoading = findViewById(R.id.layoutLoading);
         layoutMainUI = findViewById(R.id.layoutMainUI);
@@ -403,13 +390,6 @@ public class MainActivity extends AppCompatActivity {
                         }
                     }
 
-                    if (wasImportantOp) {
-                        MainActivity.this.runOnUiThread(() -> {
-                            if (!MainActivity.this.isFinishing() && !MainActivity.this.isDestroyed() && mostrarPublicidad != null) {
-                                mostrarPublicidad.mostrarInterstitialConCooldown();
-                            }
-                        });
-                    }
                 } else {
                     if (UsbController.needsPtyBridge(selectedProgrammer) && usbController.getPtyBridge() != null) {
                         MainActivity.this.log("[DIAG PtyBridge] " + usbController.getPtyBridge().getDiagnosticReport());
@@ -425,9 +405,14 @@ public class MainActivity extends AppCompatActivity {
                     }
                     if (btnAbort != null) btnAbort.setVisibility(View.GONE);
                     String[] items = suggestedChips.toArray(new String[0]);
+                    // NOTE: do not call setMessage() here. AlertController only
+                    // attaches the ListView to the content panel when the message
+                    // is null, so setting both a message and items silently drops
+                    // the list and leaves an empty dialog with just CANCEL.
+                    // The explanation goes to the terminal instead.
+                    MainActivity.this.log(getString(R.string.str_ambiguity_msg));
                     new android.app.AlertDialog.Builder(MainActivity.this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
                         .setTitle(R.string.str_ambiguity_title)
-                        .setMessage(R.string.str_ambiguity_msg)
                         .setItems(items, (dialog, which) -> {
                             String chosenChip = items[which];
                             java.util.List<String> newArgs = new ArrayList<>(Arrays.asList(args));
@@ -457,32 +442,11 @@ public class MainActivity extends AppCompatActivity {
         }
         setupLogCopySupport();
 
-        mostrarPublicidad = new MostrarPublicidad(this);
+        // The ad container stays hidden: this build loads no advertising.
         adContainer = findViewById(R.id.adContainer);
         if (adContainer != null) {
-            adContainer.addView(mostrarPublicidad.getBanner());
-            mostrarPublicidad.cargarBanner();
-            mostrarPublicidad.cargarInterstial();
+            adContainer.setVisibility(View.GONE);
         }
-
-        billingManager = new BillingManager(this, new BillingManager.BillingListener() {
-            @Override
-            public void onProductReady(String productId, String formattedPrice) {
-                // Producto listo desde Google Play
-            }
-
-            @Override
-            public void onPurchaseSuccess(String productId) {
-                mostrarDialogoAgradecimiento();
-            }
-
-            @Override
-            public void onPurchaseError(String errorMessage) {
-                if (errorMessage != null && !errorMessage.isEmpty()) {
-                    Toast.makeText(MainActivity.this, errorMessage, Toast.LENGTH_SHORT).show();
-                }
-            }
-        });
 
         log(getString(R.string.str_log_started));
 
@@ -1040,9 +1004,6 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        if (mostrarPublicidad != null) {
-            mostrarPublicidad.resumenBanner();
-        }
         // Recargar preferencias al volver si hubo cambios (ej: se cambio el chip o se
         // limpiaron terminales)
         SharedPreferences prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
@@ -1064,9 +1025,6 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onPause() {
-        if (mostrarPublicidad != null) {
-            mostrarPublicidad.pausarBanner();
-        }
         super.onPause();
     }
 
@@ -1330,6 +1288,51 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    /**
+     * Keeps content clear of the system bars.
+     *
+     * With targetSdk 35+ Android draws the window edge-to-edge, so the
+     * ContentFrameLayout starts at y=0. Without this, tvStatus sits under the
+     * clock and the first row of buttons is hidden behind the ActionBar.
+     *
+     * actionBarSize is added because the decor ActionBar paints ON TOP of the
+     * content in this mode. If some Android version goes back to reserving that
+     * space itself, content would be pushed down too far -- in that case just
+     * drop 'actionBarPad' from the setPadding() call below.
+     */
+    private void applyWindowInsets() {
+        final View root = findViewById(R.id.rootLayout);
+        if (root == null) {
+            return;
+        }
+
+        final int basePad = Math.round(16 * getResources().getDisplayMetrics().density);
+
+        int measuredActionBar = 0;
+        android.util.TypedValue tv = new android.util.TypedValue();
+        if (getTheme().resolveAttribute(android.R.attr.actionBarSize, tv, true)) {
+            measuredActionBar = android.util.TypedValue.complexToDimensionPixelSize(
+                    tv.data, getResources().getDisplayMetrics());
+        }
+        final int actionBarPad = measuredActionBar;
+
+        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(root, (v, insets) -> {
+            androidx.core.graphics.Insets bars = insets.getInsets(
+                    androidx.core.view.WindowInsetsCompat.Type.systemBars()
+                            | androidx.core.view.WindowInsetsCompat.Type.displayCutout());
+
+            v.setPadding(
+                    bars.left + basePad,
+                    bars.top + actionBarPad + basePad,
+                    bars.right + basePad,
+                    bars.bottom + basePad);
+
+            return androidx.core.view.WindowInsetsCompat.CONSUMED;
+        });
+
+        androidx.core.view.ViewCompat.requestApplyInsets(root);
+    }
+
     private void logRuntimeInfo() {
         log(getString(R.string.str_log_started));
         log(getString(R.string.str_log_android_info, Build.VERSION.RELEASE, Build.VERSION.SDK_INT));
@@ -1390,20 +1393,17 @@ public class MainActivity extends AppCompatActivity {
         } else if (id == R.id.action_hex_diff) {
             startActivity(new Intent(this, HexDiffActivity.class));
             return true;
+        } else if (id == R.id.action_sha256) {
+            startActivity(new Intent(this, Sha256Activity.class));
+            return true;
         } else if (id == R.id.action_pinouts) {
             showPinoutsDialog();
             return true;
         } else if (id == R.id.action_about) {
             showAboutDialog();
             return true;
-        } else if (id == R.id.action_policy) {
-            startActivity(new Intent(this, PolicyActivity.class));
-            return true;
         } else if (id == R.id.action_export_serprog) {
             exportSerprogFirmware();
-            return true;
-        } else if (id == R.id.action_donate_pizza) {
-            mostrarDialogoDonacionPizza();
             return true;
         }
 
@@ -1441,34 +1441,6 @@ public class MainActivity extends AppCompatActivity {
             log(getString(R.string.str_error_copying_asset, assetName, e.getMessage()));
             return false;
         }
-    }
-
-    private void mostrarDialogoDonacionPizza() {
-        String precio = (billingManager != null)
-                ? billingManager.getFormattedPrice(BillingManager.PRODUCT_ID_PIZZA, "$5.00")
-                : "$5.00";
-        String btnTexto = getString(R.string.donate_dialog_btn, precio);
-
-        new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
-                .setIcon(R.drawable.ic_pizza)
-                .setTitle(R.string.donate_dialog_title)
-                .setMessage(R.string.donate_dialog_message)
-                .setPositiveButton(btnTexto, (dialog, which) -> {
-                    if (billingManager != null) {
-                        billingManager.launchPurchaseFlow(this, BillingManager.PRODUCT_ID_PIZZA);
-                    }
-                })
-                .setNegativeButton(R.string.str_cancelar, null)
-                .show();
-    }
-
-    private void mostrarDialogoAgradecimiento() {
-        new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
-                .setIcon(R.drawable.ic_pizza)
-                .setTitle(R.string.donate_thank_you_title)
-                .setMessage(R.string.donate_thank_you_message)
-                .setPositiveButton(android.R.string.ok, null)
-                .show();
     }
 
     private void showAboutDialog() {
@@ -1702,12 +1674,6 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
-        if (mostrarPublicidad != null) {
-            mostrarPublicidad.disposeBanner();
-        }
-        if (billingManager != null) {
-            billingManager.destroy();
-        }
         if (flashromExecutor == null || !flashromExecutor.isRunning()) {
             if (usbController != null) {
                 usbController.disconnectDevice();

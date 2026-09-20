@@ -19,14 +19,16 @@ public class ProgrammerSettingsActivity extends AppCompatActivity {
     private static final String PREFS = "flashrom_prefs";
     private static final String KEY_PROGRAMMER = "selected_programmer";
 
+    // Only the programmers actually compiled into our flashrom build. The
+    // upstream list also offered PCI/internal ones (internal, linux_spi,
+    // linux_mtd, gfxnvidia, nic*, sata*, ...) which need root or raw PCI access
+    // and cannot work on an unprivileged Android app -- selecting one just made
+    // flashrom exit with "Unknown programmer".
     private static final String[] SUPPORTED_PROGRAMMERS = {
-            "asm106x", "atavia", "buspirate_spi", "ch341a_spi", "ch347_spi", "dediprog",
-            "developerbox_spi", "digilent_spi", "dirtyjtag_spi", "drkaiser", "dummy",
-            "ft2232_spi", "gfxnvidia", "internal", "it8212", "jlink_spi", "linux_mtd",
-            "linux_spi", "mediatek_i2c_spi", "mstarddc_spi", "nicintel", "nicintel_eeprom",
-            "nicintel_spi", "nv_sma_spi", "ogp_spi", "parade_lspcon", "pickit2_spi",
-            "pony_spi", "raiden_debug_spi", "realtek_mst_i2c_spi", "satasii", "serprog",
-            "spidriver", "stlinkv3_spi", "usbblaster_spi"
+            "buspirate_spi", "ch341a_spi", "ch347_spi", "dediprog",
+            "developerbox_spi", "digilent_spi", "dirtyjtag_spi", "dummy",
+            "ft2232_spi", "jlink_spi", "pickit2_spi", "raiden_debug_spi",
+            "serprog", "spidriver", "stlinkv3_spi", "usbblaster_spi"
     };
 
     private Spinner spinnerProgrammer;
@@ -37,6 +39,9 @@ public class ProgrammerSettingsActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_programmer_settings);
+
+        com.diamon.curso.utils.WindowInsetsHelper.apply(
+                this, findViewById(R.id.programmerSettingsRoot), 16);
 
         setTitle(R.string.str_configuracin_de);
 

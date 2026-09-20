@@ -1,0 +1,138 @@
+diff --git a/libusb/core.c b/libusb/core.c
+index 507066a..f518cf7 100644
+--- a/libusb/core.c
++++ b/libusb/core.c
+@@ -27,6 +27,8 @@
+ #include <android/log.h>
+ #endif
+ #include <stdio.h>
++#include <stdlib.h>
++#include <stdint.h>
+ #include <string.h>
+ #ifdef HAVE_SYSLOG
+ #include <syslog.h>
+@@ -844,6 +846,18 @@ ssize_t API_EXPORTED libusb_get_device_list(libusb_context *ctx,
+ 	int r = 0;
+ 	ssize_t i, len;
+ 
++	char *f1 = getenv("ANDROID_USB_FD");
++	if (!f1) {
++		*list = calloc(1, sizeof(void*));
++		return 0;
++	}
++	fprintf(stderr, "[libusb-android] synthesising device entry for wrapped fd\n");
++	ret = calloc(2, sizeof(void*));
++	struct libusb_device *d = usbi_alloc_device(usbi_get_context(ctx), 0);
++	ret[0] = d; ret[1] = NULL; *list = ret;
++	if (discdevs) discovered_devs_free(discdevs);
++	return 1;
++
+ 	usbi_dbg(ctx, " ");
+ 
+ 	if (!discdevs)
+@@ -1466,6 +1480,13 @@ int API_EXPORTED libusb_open(libusb_device *dev,
+ 	size_t priv_size = usbi_backend.device_handle_priv_size;
+ 	int r;
+ 
++	char *f2 = getenv("ANDROID_USB_FD");
++	if (f2) {
++		fprintf(stderr, "[libusb-android] libusb_open: wrapping fd %s\n", f2);
++		int fd = atoi(f2);
++		return libusb_wrap_sys_device(ctx, (intptr_t)fd, dev_handle);
++	}
++
+ 	usbi_dbg(DEVICE_CTX(dev), "open %d.%d", dev->bus_number, dev->device_address);
+ 
+ 	if (!usbi_atomic_load(&dev->attached))
+@@ -2679,7 +2700,8 @@ int API_EXPORTED libusb_init_context(libusb_context **ctx, const struct libusb_i
+ 
+ 	if (usbi_backend.init) {
+ 		r = usbi_backend.init(_ctx);
+-		if (r)
++			if (r) { r = 0; /* Android: ignore netlink backend init failure */ }
++			if (0)
+ 			goto err_io_exit;
+ 	}
+ 
+diff --git a/libusb/descriptor.c b/libusb/descriptor.c
+index 15130e6..0c8949c 100644
+--- a/libusb/descriptor.c
++++ b/libusb/descriptor.c
+@@ -22,6 +22,13 @@
+ #include "libusbi.h"
+ 
+ #include <string.h>
++#include <stdio.h>
++#include <stdlib.h>
++#include <unistd.h>
++#include <errno.h>
++#include <string.h>
++#include <sys/ioctl.h>
++#include <linux/usbdevice_fs.h>
+ 
+ #define DESC_HEADER_LENGTH	2
+ 
+@@ -531,6 +538,50 @@ static int get_config_descriptor(struct libusb_device *dev, uint8_t config_idx,
+ int API_EXPORTED libusb_get_device_descriptor(libusb_device *dev,
+ 	struct libusb_device_descriptor *desc)
+ {
++
++	char *f_fd = getenv("ANDROID_USB_FD");
++	if (f_fd) {
++		static unsigned char cached_desc[18];
++		static int has_cached_desc = 0;
++		int fd = atoi(f_fd);
++		unsigned char buf[18];
++		if (!has_cached_desc) {
++			fprintf(stderr, "[libusb-android] reading device descriptor via ioctl (fd %d)... ", fd);
++			struct usbdevfs_ctrltransfer ctrl;
++			ctrl.bRequestType = 0x80;
++			ctrl.bRequest = 0x06;
++			ctrl.wValue = 0x0100;
++			ctrl.wIndex = 0;
++			ctrl.wLength = 18;
++			ctrl.timeout = 1000;
++			ctrl.data = buf;
++			int res = ioctl(fd, 0xC0185500, &ctrl); // USBDEVFS_CONTROL
++			if (res == 18) {
++				memcpy(cached_desc, buf, 18);
++				has_cached_desc = 1;
++			} else {
++				fprintf(stderr, "ioctl FAILED (res=%d, errno=%d: %s)\n", res, errno, strerror(errno));
++				return -1;
++			}
++		}
++		memcpy(buf, cached_desc, 18);
++		desc->bLength = buf[0];
++		desc->bDescriptorType = buf[1];
++		desc->bcdUSB = (buf[3] << 8) | buf[2];
++		desc->bDeviceClass = buf[4];
++		desc->bDeviceSubClass = buf[5];
++		desc->bDeviceProtocol = buf[6];
++		desc->bMaxPacketSize0 = buf[7];
++		desc->idVendor = (buf[9] << 8) | buf[8];
++		desc->idProduct = (buf[11] << 8) | buf[10];
++		desc->bcdDevice = (buf[13] << 8) | buf[12];
++		desc->iManufacturer = buf[14];
++		desc->iProduct = buf[15];
++		desc->iSerialNumber = buf[16];
++		desc->bNumConfigurations = buf[17];
++		fprintf(stderr, "[libusb-android] ok (cached): VID=%04x PID=%04x\n", desc->idVendor, desc->idProduct);
++		return 0;
++	}
+ 	usbi_dbg(DEVICE_CTX(dev), " ");
+ 	static_assert(sizeof(dev->device_descriptor) == LIBUSB_DT_DEVICE_SIZE,
+ 		      "struct libusb_device_descriptor is not expected size");
+diff --git a/libusb/os/linux_usbfs.c b/libusb/os/linux_usbfs.c
+index 74e73f9..97e384a 100644
+--- a/libusb/os/linux_usbfs.c
++++ b/libusb/os/linux_usbfs.c
+@@ -433,7 +433,7 @@ static void op_exit(struct libusb_context *ctx)
+ 		return;
+ 	}
+ 
+-	assert(init_count != 0);
++	if (init_count == 0) return;
+ 	if (!--init_count) {
+ 		/* tear down event handler */
+ 		linux_stop_event_monitor();

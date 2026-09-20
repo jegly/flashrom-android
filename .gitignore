@@ -22,20 +22,20 @@ local.properties
 *.keystore
 keystore.properties
 
-*.json
-
 *.apk
 *.aab
-GUIA_PUBLICACION_PLAY_STORE.md
+/app/release/
+/app/debug/
 
-# Emulador Flashrom temporary files
-emulador_flashrom/serprog_pty
-emulador_flashrom/buspirate_pty
-emulador_flashrom/ch341a_socket
-emulador_flashrom/spidriver_pty
+# Native build workspace.
+# native/ holds the build scripts, the libusb patch and the meson cross file,
+# which are all tracked. work/ is upstream clones (each with its own .git),
+# sysroot/ is the staging install tree and out/ is build output. The finished
+# libraries are committed under app/src/main/jniLibs/ instead.
+/native/work/
+/native/sysroot/
+/native/out/
 
 # Local tools and build directories
 arduino-cli
 firmware_build/
-
-

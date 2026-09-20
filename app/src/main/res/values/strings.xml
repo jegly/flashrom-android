@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Flash SPI Tool</string>
+    <string name="app_name">flashrom</string>
     <string name="str_selecciona_dos_">Select two files to compare</string>
     <string name="str_archivo_a">File A</string>
     <string name="str_archivo_b">File B</string>
@@ -8,7 +8,7 @@
     <string name="str_ajustes_manuale">Manual Parameter Settings (-p):</string>
     <string name="str_guardar_configu">Save Configuration</string>
     <string name="str_hardware_soport">Hardware Supported in this build:</string>
-    <string name="str_asm106x_atavia_">asm106x, atavia, buspirate_spi, ch341a_spi, ch347_spi, dediprog, developerbox_spi, digilent_spi, dirtyjtag_spi, drkaiser, dummy, ft2232_spi, gfxnvidia, internal, it8212, jlink_spi, linux_mtd, linux_spi, mediatek_i2c_spi, mstarddc_spi, nicintel, nicintel_eeprom, nicintel_spi, nv_sma_spi, ogp_spi, parade_lspcon, pickit2_spi, pony_spi, raiden_debug_spi, realtek_mst_i2c_spi, satasii, serprog, spidriver, stlinkv3_spi, usbblaster_spi</string>
+    <string name="str_asm106x_atavia_">buspirate_spi, ch341a_spi, ch347_spi, dediprog, developerbox_spi, digilent_spi, dirtyjtag_spi, dummy, ft2232_spi, jlink_spi, pickit2_spi, raiden_debug_spi, serprog, spidriver, stlinkv3_spi, usbblaster_spi</string>
     <string name="str_hardware_no_sop">Hardware NOT SUPPORTED or Excluded:</string>
     <string name="str_atahpt_atapromi">atahpt, atapromise, ft232r_spi, ni845x_spi, nic3com, nicnatsemi, nicrealtek, rayer_spi, satamv</string>
     <string name="str_cargando_archiv">Loading file...</string>
@@ -89,7 +89,7 @@
     <string name="str_log_warn_dependencies_failed">[WARN] Failed to prepare all local dependencies.</string>
     <string name="str_log_assets_copied">Assets copied successfully to internal storage.</string>
     <string name="str_log_resources_verified">Resources verified and updated successfully.</string>
-    <string name="str_log_started">Flash SPI Tool started successfully.</string>
+    <string name="str_log_started">flashrom started successfully.</string>
     <string name="str_log_android_info">Android: %1$s (API %2$d)</string>
     <string name="str_log_programmer_selected">Selected programmer: %1$s</string>
     <string name="str_log_connect_help">To begin, connect your USB programmer and press \'Detect and Connect Automatically\'.</string>
@@ -162,7 +162,7 @@
     <string name="str_dummy_opt_probe">Identify emulated chip</string>
     <string name="str_dummy_opt_select">Select predefined chip</string>
     <string name="str_dummy_opt_info">Valid emulation chips</string>
-    <string name="str_about_html"><![CDATA[<h2>Flash SPI Tool</h2><p>Advanced application for reading, verifying, and writing Firmware (SPI Flash Memories) with native <b>flashrom</b>.</p><hr/><b>Project License:</b> GPLv3.<br/><br/><b>Dependencies and Libraries:</b><br/>• <a href="https://github.com/mik3y/usb-serial-for-android">usb-serial-for-android</a> (MIT)<br/>• <a href="https://github.com/libusb/libusb">libusb</a> (LGPL-2.1+)<br/>• <a href="https://github.com/pciutils/pciutils">pciutils</a> (GPL-2.0+)<br/>• <a href="https://developer.intra2net.com/git/libftdi">libftdi</a> (LGPL-2.1+)<br/>• <a href="https://gitlab.zapb.de/libjaylink/libjaylink">libjaylink</a> (GPL-2.0+)<br/>• <a href="https://github.com/flashrom/flashrom">flashrom</a> (GPL-2.0)<br/><br/><b>Developer Related Projects:</b><br/>• <a href="https://github.com/Danielk10/PIC-k150-Programing">PIC k150 Programming</a> — PIC programmer via Android with P018A protocol<br/>]]></string>
+    <string name="str_about_html"><![CDATA[<h2>flashrom for Android</h2><p>Reads, verifies and writes SPI flash memories using native <b>flashrom</b>.</p><hr/><p><b>Modified build</b> based on <a href="https://github.com/Danielk10/Flash-EEPROM-Tool">Flash SPI Tool</a> by Danielk10. All native libraries rebuilt from pinned upstream sources; advertising, analytics, billing and all network access removed.</p><b>Project License:</b> GPLv3.<br/><br/><b>Dependencies and Libraries:</b><br/>• <a href="https://github.com/mik3y/usb-serial-for-android">usb-serial-for-android</a> (MIT)<br/>• <a href="https://github.com/libusb/libusb">libusb</a> (LGPL-2.1+)<br/>• <a href="https://developer.intra2net.com/git/libftdi">libftdi</a> (LGPL-2.1+)<br/>• <a href="https://gitlab.zapb.de/libjaylink/libjaylink">libjaylink</a> (GPL-2.0+)<br/>• <a href="https://github.com/flashrom/flashrom">flashrom</a> (GPL-2.0)<br/>]]></string>
     <string name="menu_donate_pizza">Help me with a Pizza 🍕 $5</string>
     <string name="donate_dialog_title">Support the Project</string>
     <string name="donate_dialog_message">Did you like my work or find Flash SPI Tool helpful? You can buy the developer a pizza to support continuous development and updates.</string>
@@ -231,4 +231,16 @@
     <string name="str_log_warn_dummy_size_mismatch">Notice: File bios.bin (%1$d bytes) does not match selected dummy chip (%2$d bytes). Forcing emulation to VARIABLE_SIZE to prevent flashrom error.</string>
     <string name="str_log_generating_test_file">No bios.bin loaded. Generating/using test file...</string>
     <string name="str_log_err_creating_test_file">Error creating test file: %1$s</string>
+    <string name="str_sha256_match">SHA-256: identical</string>
+    <string name="str_sha256_differ">SHA-256: DIFFERENT</string>
+    <string name="str_sha256_screen_title">SHA-256 Checksums</string>
+    <string name="str_sha256_add">ADD DUMPS</string>
+    <string name="str_sha256_clear">CLEAR</string>
+    <string name="str_sha256_empty">Add two or more dumps to check whether they are identical.</string>
+    <string name="str_sha256_need_more">Add another dump to compare against.</string>
+    <string name="str_sha256_hashing">Hashing...</string>
+    <string name="str_sha256_unreadable">could not be read</string>
+    <string name="str_sha256_all_match">All %1$d dumps identical</string>
+    <string name="str_sha256_groups">%1$d dumps, %2$d different hashes</string>
+    <string name="str_sha256_menu">SHA-256 Checksums</string>
 </resources>

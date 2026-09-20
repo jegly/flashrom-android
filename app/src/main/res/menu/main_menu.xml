@@ -13,6 +13,11 @@
         app:showAsAction="never" />
 
     <item
+        android:id="@+id/action_sha256"
+        android:title="@string/str_sha256_menu"
+        app:showAsAction="never" />
+
+    <item
         android:id="@+id/action_programmer_settings"
         android:title="@string/str_configuracin_de"
         app:showAsAction="never" />
@@ -35,17 +40,6 @@
     <item
         android:id="@+id/action_export_serprog"
         android:title="@string/menu_export_serprog"
-        app:showAsAction="never" />
-
-    <item
-        android:id="@+id/action_policy"
-        android:title="@string/str_polticas_de_pri"
-        app:showAsAction="never" />
-
-    <item
-        android:id="@+id/action_donate_pizza"
-        android:icon="@drawable/ic_pizza"
-        android:title="@string/menu_donate_pizza"
         app:showAsAction="never" />
 
     <item

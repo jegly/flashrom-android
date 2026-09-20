@@ -134,14 +134,38 @@ public class FlashromExecutor {
                         if (c == '\n' || c == '\r') {
                             if (lineCollector.length() > 0) {
                                 String line = lineCollector.toString();
-                                if (line.contains("Multiple flash chip definitions match")) {
-                                    multipleChipsFound = true;
-                                }
-                                if (multipleChipsFound && line.startsWith("Found ") && line.contains("flash chip")) {
+                                // Collect every "Found ... flash chip "NAME"" line
+                                // unconditionally. flashrom prints those BEFORE the
+                                // "Multiple flash chip definitions match" line, so
+                                // gating them on multipleChipsFound (as this used to)
+                                // meant the list was always empty and the chip picker
+                                // never appeared.
+                                if (line.startsWith("Found ") && line.contains("flash chip")) {
                                     int startQuote = line.indexOf('"');
                                     int endQuote = line.indexOf('"', startQuote + 1);
                                     if (startQuote != -1 && endQuote != -1) {
-                                        suggestedChips.add(line.substring(startQuote + 1, endQuote));
+                                        String name = line.substring(startQuote + 1, endQuote);
+                                        if (!name.isEmpty() && !suggestedChips.contains(name)) {
+                                            suggestedChips.add(name);
+                                        }
+                                    }
+                                }
+                                if (line.contains("Multiple flash chip definitions match")) {
+                                    multipleChipsFound = true;
+                                    // Belt and braces: this line also lists the
+                                    // candidates in quotes, so parse them too in case
+                                    // the "Found" lines were formatted differently.
+                                    int from = line.indexOf(':');
+                                    while (from != -1) {
+                                        int s = line.indexOf('"', from + 1);
+                                        if (s == -1) break;
+                                        int e = line.indexOf('"', s + 1);
+                                        if (e == -1) break;
+                                        String name = line.substring(s + 1, e);
+                                        if (!name.isEmpty() && !suggestedChips.contains(name)) {
+                                            suggestedChips.add(name);
+                                        }
+                                        from = e;
                                     }
                                 }
                                 lineCollector.setLength(0);

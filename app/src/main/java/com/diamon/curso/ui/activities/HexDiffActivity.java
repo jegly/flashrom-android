@@ -24,7 +24,10 @@ import java.io.InputStream;
 
 public class HexDiffActivity extends AppCompatActivity {
 
-    private TextView tvDiffSummary, tvDiffStats;
+    /** Dumps of 32MB flash parts are normal here, so the old 16MB cap was too low. */
+    private static final long MAX_FILE_BYTES = 64L * 1024 * 1024;
+
+    private TextView tvDiffSummary, tvDiffStats, tvHashes;
     private RecyclerView recyclerDiff;
     private Button btnLoadFile1, btnLoadFile2;
 
@@ -32,6 +35,8 @@ public class HexDiffActivity extends AppCompatActivity {
     private byte[] dataB = null;
     private String nameA = "";
     private String nameB = "";
+    private String hashA = null;
+    private String hashB = null;
 
     private final ActivityResultLauncher<Intent> file1Launcher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
@@ -41,6 +46,7 @@ public class HexDiffActivity extends AppCompatActivity {
                     if (uri != null) {
                         try {
                             dataA = readUriToBytes(uri);
+                            hashA = sha256(dataA);
                             nameA = getFileName(uri);
                             btnLoadFile1.setText(getString(R.string.str_file_a, nameA));
                             tryCompare();
@@ -59,6 +65,7 @@ public class HexDiffActivity extends AppCompatActivity {
                     if (uri != null) {
                         try {
                             dataB = readUriToBytes(uri);
+                            hashB = sha256(dataB);
                             nameB = getFileName(uri);
                             btnLoadFile2.setText(getString(R.string.str_file_b, nameB));
                             tryCompare();
@@ -82,8 +89,12 @@ public class HexDiffActivity extends AppCompatActivity {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         }
 
+        com.diamon.curso.utils.WindowInsetsHelper.apply(
+                this, findViewById(R.id.hexDiffRoot), 8);
+
         tvDiffSummary = findViewById(R.id.tvDiffSummary);
         tvDiffStats = findViewById(R.id.tvDiffStats);
+        tvHashes = findViewById(R.id.tvHashes);
         recyclerDiff = findViewById(R.id.recyclerDiff);
         recyclerDiff.setLayoutManager(new LinearLayoutManager(this));
         btnLoadFile1 = findViewById(R.id.btnLoadFile1);
@@ -94,8 +105,10 @@ public class HexDiffActivity extends AppCompatActivity {
         if (biosFile.exists()) {
             try {
                 dataA = java.nio.file.Files.readAllBytes(biosFile.toPath());
+                hashA = sha256(dataA);
                 nameA = getString(R.string.str_bios_internal);
                 btnLoadFile1.setText(getString(R.string.str_file_a, nameA));
+                updateHashes();
             } catch (Exception ignored) {
             }
         }
@@ -116,6 +129,7 @@ public class HexDiffActivity extends AppCompatActivity {
     }
 
     private void tryCompare() {
+        updateHashes();
         if (dataA == null || dataB == null) {
             tvDiffSummary.setText(R.string.str_load_both_files);
             return;
@@ -147,6 +161,56 @@ public class HexDiffActivity extends AppCompatActivity {
         recyclerDiff.setAdapter(new DiffAdapter(dataA, dataB));
     }
 
+    /** Lowercase hex SHA-256, matching what sha256sum prints on a desktop. */
+    private static String sha256(byte[] data) {
+        if (data == null) {
+            return null;
+        }
+        try {
+            byte[] digest = java.security.MessageDigest.getInstance("SHA-256").digest(data);
+            StringBuilder sb = new StringBuilder(digest.length * 2);
+            for (byte b : digest) {
+                sb.append(Character.forDigit((b >> 4) & 0xF, 16));
+                sb.append(Character.forDigit(b & 0xF, 16));
+            }
+            return sb.toString();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * Shows the SHA-256 of whichever files are loaded. Useful on its own with a
+     * single file, so a dump can be checked against sha256sum on a workstation.
+     */
+    private void updateHashes() {
+        if (tvHashes == null) {
+            return;
+        }
+        if (dataA == null && dataB == null) {
+            tvHashes.setVisibility(View.GONE);
+            return;
+        }
+
+        StringBuilder sb = new StringBuilder();
+        if (dataA != null) {
+            sb.append("A  ").append(nameA).append('\n').append(hashA);
+        }
+        if (dataB != null) {
+            if (sb.length() > 0) {
+                sb.append("\n\n");
+            }
+            sb.append("B  ").append(nameB).append('\n').append(hashB);
+        }
+        if (hashA != null && hashB != null) {
+            sb.append("\n\n").append(getString(hashA.equals(hashB)
+                    ? R.string.str_sha256_match : R.string.str_sha256_differ));
+        }
+
+        tvHashes.setText(sb.toString());
+        tvHashes.setVisibility(View.VISIBLE);
+    }
+
     private byte[] readUriToBytes(Uri uri) throws Exception {
         try (InputStream is = getContentResolver().openInputStream(uri)) {
             if (is == null)
@@ -157,7 +221,7 @@ public class HexDiffActivity extends AppCompatActivity {
                 int sizeIdx = cursor.getColumnIndex(android.provider.OpenableColumns.SIZE);
                 if (sizeIdx >= 0) {
                     long size = cursor.getLong(sizeIdx);
-                    if (size > 16 * 1024 * 1024) {
+                    if (size > MAX_FILE_BYTES) {
                         cursor.close();
                         throw new IllegalArgumentException(getString(R.string.str_err_file_too_large_diff));
                     }
@@ -171,7 +235,7 @@ public class HexDiffActivity extends AppCompatActivity {
             long totalRead = 0;
             while ((nRead = is.read(buf)) != -1) {
                 totalRead += nRead;
-                if (totalRead > 16 * 1024 * 1024) {
+                if (totalRead > MAX_FILE_BYTES) {
                     throw new IllegalArgumentException(getString(R.string.str_err_file_too_large_diff));
                 }
                 buffer.write(buf, 0, nRead);

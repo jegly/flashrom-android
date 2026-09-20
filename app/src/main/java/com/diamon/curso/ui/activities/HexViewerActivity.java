@@ -31,6 +31,9 @@ public class HexViewerActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_hex_viewer);
 
+        com.diamon.curso.utils.WindowInsetsHelper.apply(
+                this, findViewById(R.id.hexViewerRoot), 8);
+
         if (getSupportActionBar() != null) {
             getSupportActionBar().setTitle(R.string.str_visor_hexadecim);
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);

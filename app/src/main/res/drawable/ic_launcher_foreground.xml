@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Adaptive icon foreground: SOIC-8 flash chip with a bolt cut out of it.
+     108x108dp canvas. Everything is kept inside the 66dp guaranteed-visible
+     circle (radius 33 from centre 54,54) so circular launcher masks do not
+     clip the pins.
+
+     The bolt and the pin-1 dot are real holes (fillType="evenOdd"), not dark
+     shapes painted on top. That matters for themed icons: the monochrome layer
+     is tinted by alpha, so a filled-in bolt would disappear, whereas a cutout
+     survives. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Pins, four per side -->
+    <path
+        android:fillColor="#22C55E"
+        android:pathData="M28,38 h6 v5 h-6 z M28,48 h6 v5 h-6 z M28,58 h6 v5 h-6 z M28,68 h6 v5 h-6 z
+                          M74,38 h6 v5 h-6 z M74,48 h6 v5 h-6 z M74,58 h6 v5 h-6 z M74,68 h6 v5 h-6 z" />
+
+    <!-- Package body, with the bolt and pin-1 dot knocked out of it -->
+    <path
+        android:fillColor="#22C55E"
+        android:fillType="evenOdd"
+        android:pathData="M39,30 H69 A5,5 0 0 1 74,35 V73 A5,5 0 0 1 69,78 H39 A5,5 0 0 1 34,73 V35 A5,5 0 0 1 39,30 Z
+                          M58,36 L44,57 H52 L49,72 L64,51 H56 Z
+                          M42,38 m-3.5,0 a3.5,3.5 0 1,0 7,0 a3.5,3.5 0 1,0 -7,0 Z" />
+</vector>

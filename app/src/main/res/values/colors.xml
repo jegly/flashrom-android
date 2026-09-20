@@ -1,21 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Professional Modern Theme Colors -->
-    <color name="primary">#0277BD</color>          <!-- Professional Tech Blue -->
-    <color name="primary_variant">#01579B</color>  <!-- Deeper Blue for Status bar -->
-    <color name="secondary">#00BFA5</color>        <!-- Teal accent for success/actions -->
-    <color name="secondary_variant">#00897B</color>
-    
+    <!-- "Terminal" palette: near-black blue background with a phosphor-green
+         accent, to match the flashrom log output. -->
+    <color name="primary">#161A24</color>          <!-- Top bar / surfaces -->
+    <color name="primary_variant">#0B0D14</color>  <!-- Darker variant -->
+    <color name="secondary">#22C55E</color>        <!-- Green accent (success/actions) -->
+    <color name="secondary_variant">#16A34A</color>
+
     <!-- Backgrounds -->
-    <color name="background_dark">#121212</color>
-    <color name="surface_dark">#1E1E1E</color>
-    
-    <!-- Texts -->
-    <color name="text_primary">#E0E0E0</color>
-    <color name="text_secondary">#9E9E9E</color>
-    
-    <!-- Others -->
-    <color name="error">#CF6679</color>
+    <color name="background_dark">#0F111A</color>
+    <color name="surface_dark">#161A24</color>
+
+    <!-- Text -->
+    <color name="text_primary">#E6EDF3</color>
+    <color name="text_secondary">#8B949E</color>
+
+    <!-- Other -->
+    <color name="error">#F85149</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
 </resources>
