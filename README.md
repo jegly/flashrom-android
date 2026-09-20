@@ -3,6 +3,10 @@
 Read, verify, erase and write SPI flash chips from an Android phone, using a real
 CH341A or similar USB programmer plugged in over OTG.
 
+<p align="center">
+  <img src="flashrom.jpg" alt="The app running on a phone with a CH341A programmer and SOIC-8 clip attached over OTG" width="360">
+</p>
+
 The usual way to recover a laptop with a dead BIOS is to sit a second working
 laptop next to it, plug the programmer into that, and run flashrom. This does the
 same job with a phone instead, It runs the genuine flashrom binary compiled for arm64, not a
